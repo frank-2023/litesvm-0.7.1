@@ -49,7 +49,6 @@ pub(crate) fn process_message(
                 is_writable: message.is_writable(index_in_transaction),
             });
         }
-        println!("instruction_accounts: {:?}", start.elapsed().as_nanos());
         let mut compute_units_consumed = 0;
         let result = if invoke_context.is_precompile(program_id) {
             invoke_context.process_precompile(
@@ -68,7 +67,7 @@ pub(crate) fn process_message(
                 execute_timings,
             )
         };
-        println!("process_instruction: {:?}", start.elapsed().as_nanos());
+        println!("execute_timings: {:?}", execute_timings);
         *accumulated_consumed_units =
             accumulated_consumed_units.saturating_add(compute_units_consumed);
 
