@@ -1,3 +1,4 @@
+use std::time::Instant;
 // copied from agave commit 63b13a1f6ad263fb62e1f80156eaf09838f1aff0
 // with some execute_timings usage removed
 use {
@@ -20,6 +21,7 @@ pub(crate) fn process_message(
     execute_timings: &mut ExecuteTimings,
     accumulated_consumed_units: &mut u64,
 ) -> Result<(), TransactionError> {
+    let start = Instant::now();
     debug_assert_eq!(program_indices.len(), message.num_instructions());
     for (top_level_instruction_index, ((program_id, instruction), program_indices)) in message
         .program_instructions_iter()
@@ -47,7 +49,7 @@ pub(crate) fn process_message(
                 is_writable: message.is_writable(index_in_transaction),
             });
         }
-
+        println!("instruction_accounts: {:?}", start.elapsed().as_nanos());
         let mut compute_units_consumed = 0;
         let result = if invoke_context.is_precompile(program_id) {
             invoke_context.process_precompile(
@@ -66,7 +68,7 @@ pub(crate) fn process_message(
                 execute_timings,
             )
         };
-
+        println!("process_instruction: {:?}", start.elapsed().as_nanos());
         *accumulated_consumed_units =
             accumulated_consumed_units.saturating_add(compute_units_consumed);
 
