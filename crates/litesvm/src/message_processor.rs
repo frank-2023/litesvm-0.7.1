@@ -61,13 +61,14 @@ pub(crate) fn process_message(
             // )
             Ok(())
         } else {
-            invoke_context.process_instruction(
-                instruction.data,
-                &instruction_accounts,
-                program_indices,
-                &mut compute_units_consumed,
-                execute_timings,
-            )
+            // invoke_context.process_instruction(
+            //     instruction.data,
+            //     &instruction_accounts,
+            //     program_indices,
+            //     &mut compute_units_consumed,
+            //     execute_timings,
+            // )
+            Ok(())
         };
         println!("process_instruction: {:?}", start.elapsed().as_nanos());
         *accumulated_consumed_units =
