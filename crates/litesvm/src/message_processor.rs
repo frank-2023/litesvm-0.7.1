@@ -52,23 +52,21 @@ pub(crate) fn process_message(
         println!("instruction_accounts: {:?}", start.elapsed().as_nanos());
         let mut compute_units_consumed = 0;
         let result = if invoke_context.is_precompile(program_id) {
-            // invoke_context.process_precompile(
-            //     program_id,
-            //     instruction.data,
-            //     &instruction_accounts,
-            //     program_indices,
-            //     message.instructions_iter().map(|ix| ix.data),
-            // )
-            Ok(())
+            invoke_context.process_precompile(
+                program_id,
+                instruction.data,
+                &instruction_accounts,
+                program_indices,
+                message.instructions_iter().map(|ix| ix.data),
+            )
         } else {
-            // invoke_context.process_instruction(
-            //     instruction.data,
-            //     &instruction_accounts,
-            //     program_indices,
-            //     &mut compute_units_consumed,
-            //     execute_timings,
-            // )
-            Ok(())
+            invoke_context.process_instruction(
+                instruction.data,
+                &instruction_accounts,
+                program_indices,
+                &mut compute_units_consumed,
+                execute_timings,
+            )
         };
         println!("process_instruction: {:?}", start.elapsed().as_nanos());
         *accumulated_consumed_units =
