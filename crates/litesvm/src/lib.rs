@@ -1264,6 +1264,7 @@ impl LiteSVM {
         sanitized_tx: SanitizedTransaction,
         log_collector: Rc<RefCell<LogCollector>>,
     ) -> ExecutionResult {
+        let start = Instant::now();
         let CheckAndProcessTransactionSuccess {
             core:
                 CheckAndProcessTransactionSuccessCore {
@@ -1276,6 +1277,7 @@ impl LiteSVM {
             Ok(value) => value,
             Err(value) => return value,
         };
+        println!("check_and_process_transaction {:?}", start.elapsed().as_nanos());
         if let Some(ctx) = context {
             execution_result_if_context(sanitized_tx, ctx, result, compute_units_consumed)
         } else {
@@ -1303,11 +1305,14 @@ impl LiteSVM {
         sanitized_tx: &SanitizedTransaction,
         log_collector: Rc<RefCell<LogCollector>>,
     ) -> Result<CheckAndProcessTransactionSuccess, ExecutionResult> {
+        let start = Instant::now();
         self.maybe_blockhash_check(sanitized_tx)?;
         let compute_budget_limits = get_compute_budget_limits(sanitized_tx, &self.feature_set)?;
         self.maybe_history_check(sanitized_tx)?;
+        println!("start {:?}", start.elapsed().as_nanos());
         let (result, compute_units_consumed, context, fee, payer_key) =
             self.process_transaction(sanitized_tx, compute_budget_limits, log_collector);
+        println!("process_transaction {:?}", start.elapsed().as_nanos());
         Ok(CheckAndProcessTransactionSuccess {
             core: {
                 CheckAndProcessTransactionSuccessCore {
@@ -1418,13 +1423,11 @@ impl LiteSVM {
         &self,
         tx: impl Into<VersionedTransaction>,
     ) -> Result<SimulatedTransactionInfo, FailedTransactionMetadata> {
-        let start = Instant::now();
         let log_collector = LogCollector {
             bytes_limit: self.log_bytes_limit,
             ..Default::default()
         };
         let log_collector = Rc::new(RefCell::new(log_collector));
-        println!("log_time : {:?}", start.elapsed().as_nanos());
         let ExecutionResult {
             post_accounts,
             tx_result,
@@ -1438,7 +1441,6 @@ impl LiteSVM {
         } else {
             self.execute_transaction_no_verify_readonly(tx.into(), log_collector.clone())
         };
-        println!("execute_transaction : {:?}", start.elapsed().as_nanos());
         let Ok(logs) = Rc::try_unwrap(log_collector).map(|lc| lc.into_inner().messages) else {
             unreachable!("Log collector should not be used after simulate_transaction returns")
         };
@@ -1449,7 +1451,6 @@ impl LiteSVM {
             compute_units_consumed,
             return_data,
         };
-        println!("try_unwrap : {:?}", start.elapsed().as_nanos());
         if let Err(tx_err) = tx_result {
             Err(FailedTransactionMetadata { err: tx_err, meta })
         } else {
