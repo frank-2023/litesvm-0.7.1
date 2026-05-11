@@ -815,6 +815,7 @@ impl LiteSVM {
         u64,
         Option<Pubkey>,
     ) {
+        let start = Instant::now();
         let compute_budget = self.compute_budget.unwrap_or_else(|| ComputeBudget {
             compute_unit_limit: u64::from(compute_budget_limits.compute_unit_limit),
             heap_size: compute_budget_limits.updated_heap_bytes,
@@ -841,6 +842,7 @@ impl LiteSVM {
         );
         let mut validated_fee_payer = false;
         let mut payer_key = None;
+        println!("create fee: {:?}",start.elapsed().as_secs());
         let maybe_accounts = account_keys
             .iter()
             .enumerate()
@@ -902,6 +904,7 @@ impl LiteSVM {
                 payer_key,
             );
         }
+        println!("create account: {:?}",start.elapsed().as_secs());
         let builtins_start_index = accounts.len();
         let maybe_program_indices = tx
             .message()
@@ -947,6 +950,7 @@ impl LiteSVM {
                 Ok(account_indices)
             })
             .collect::<Result<Vec<Vec<u16>>, TransactionError>>();
+        println!("create instructions: {:?}",start.elapsed().as_secs());
         match maybe_program_indices {
             Ok(program_indices) => {
                 let mut context = self.create_transaction_context(compute_budget, accounts);
@@ -965,6 +969,7 @@ impl LiteSVM {
                     compute_budget.to_budget(),
                     SVMTransactionExecutionCost::default(),
                 );
+                println!("create runtime_features: {:?}",start.elapsed().as_secs());
                 let mut tx_result = process_message(
                     tx.message(),
                     &program_indices,
@@ -978,6 +983,7 @@ impl LiteSVM {
                     tx_result = Err(err);
                 };
 
+                println!("create process_message: {:?}",start.elapsed().as_secs());
                 (
                     tx_result,
                     accumulated_consume_units,
@@ -1264,7 +1270,6 @@ impl LiteSVM {
         sanitized_tx: SanitizedTransaction,
         log_collector: Rc<RefCell<LogCollector>>,
     ) -> ExecutionResult {
-        let start = Instant::now();
         let CheckAndProcessTransactionSuccess {
             core:
                 CheckAndProcessTransactionSuccessCore {
@@ -1277,7 +1282,6 @@ impl LiteSVM {
             Ok(value) => value,
             Err(value) => return value,
         };
-        println!("check_and_process_transaction {:?}", start.elapsed().as_nanos());
         if let Some(ctx) = context {
             execution_result_if_context(sanitized_tx, ctx, result, compute_units_consumed)
         } else {
@@ -1305,14 +1309,11 @@ impl LiteSVM {
         sanitized_tx: &SanitizedTransaction,
         log_collector: Rc<RefCell<LogCollector>>,
     ) -> Result<CheckAndProcessTransactionSuccess, ExecutionResult> {
-        let start = Instant::now();
         self.maybe_blockhash_check(sanitized_tx)?;
         let compute_budget_limits = get_compute_budget_limits(sanitized_tx, &self.feature_set)?;
         self.maybe_history_check(sanitized_tx)?;
-        println!("start {:?}", start.elapsed().as_nanos());
         let (result, compute_units_consumed, context, fee, payer_key) =
             self.process_transaction(sanitized_tx, compute_budget_limits, log_collector);
-        println!("process_transaction {:?}", start.elapsed().as_nanos());
         Ok(CheckAndProcessTransactionSuccess {
             core: {
                 CheckAndProcessTransactionSuccessCore {
